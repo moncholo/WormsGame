@@ -1,0 +1,379 @@
+
+#include "Escenario.h"
+
+std::string pathLog = "log.txt";
+
+void Escenario::inicializarGusanos(){
+	Gusano* nuevoGusano;
+	int equipo;
+	char e;
+	std::string eq = "Equipo ";
+	std::string nombre;
+	//Creo los gusanos con sus respectivos equipos
+	for(int i = 0; i < GUSANOS_POR_EQUIPO * MAX_EQUIPOS_EN_ESCENARIO; i++){
+		equipo =((i / GUSANOS_POR_EQUIPO));
+		e = (i / GUSANOS_POR_EQUIPO)+ 48;
+		nombre = eq + e; //POR AHORA
+		nuevoGusano = new Gusano(nombre, equipo,i);
+		nuevoGusano->equipo = equipo;
+		nuevoGusano->x = 0;
+		nuevoGusano->y = 0;
+		this->gusanos->push_back(nuevoGusano);
+	}
+}
+
+void Escenario::agregarNuevoEquipo(std::string nombreJugados, b2World* unMundo){
+	//si hay lugar para otro equipo
+	if(equiposEnEscenario < equiposPermitidos){ 
+		for(int i = 0; i < GUSANOS_POR_EQUIPO; i++){
+			//agrego un nuevo equipo. Los gusanos deberían quedar en posiciones válidas
+			this->gusanos->at((GUSANOS_POR_EQUIPO*equiposEnEscenario)+i)->agregarEnPosAleatoria(unMundo, this->miTierra,
+				this->nivel_agua, 0, this->ancho_un, 0, this->alto_un, this->ancho_px, this->alto_px);
+		}
+		equiposEnEscenario++;
+	}
+}
+
+
+Escenario::Escenario() {
+	this->alto_px = 0;
+	this->ancho_px = 0;
+	this->alto_un = 0;
+	this->ancho_un = 0;
+	this->nivel_agua = 0;
+	this->imagen_tierra="";
+	this->imagen_cielo="";
+	this->objetos = new std::vector<Objeto*>();
+	this->gusanos = new std::vector<Gusano*>();
+	this->renderer = NULL;
+	this->textureDelCielo = NULL;
+	this->texturaDeFondo = NULL;
+	this->miTierra = NULL;
+	this->unaTextura = NULL;
+	this->municionActual = NULL;
+	this->zoom = 1.0f;
+	this->idArma = 2;
+	this->turnoDeEquipo = 0;
+	this->posXExplosion = 0;
+	this->posYExplosion = 0;
+
+	this->equiposPermitidos = MAX_EQUIPOS_EN_ESCENARIO;
+	this->equiposEnEscenario = 0;
+
+	this->inicializarGusanos();
+	
+	this->sonidoActual = 0;
+
+	this->angulo = 90;
+}
+
+void Escenario::avanzarTurno(){
+	this->turnoDeEquipo = (this->turnoDeEquipo + 1) % this->equiposEnEscenario;
+	this->angulo = 90;
+}
+
+Escenario::~Escenario() {
+	
+	for (int i= 0; i < this->objetos->size(); i++){
+		delete this->objetos->at(i);
+	}
+	for (int i= 0; i < this->gusanos->size(); i++){
+		delete this->gusanos->at(i);
+	}
+	delete this->objetos;
+	delete this->gusanos;
+	delete this->miTierra;
+	delete this->miProcesador;
+	
+}
+
+void Escenario::comprobarSiCuerposEnAgua(b2Body* cuerpos){
+	//para cada cuerpo, si su centro de masa está debajo de la altura del agua, lo hago comportarse más lento
+	for(cuerpos; cuerpos; cuerpos= cuerpos->GetNext()){
+		b2Vec2 centro = cuerpos->GetWorldCenter();
+		if (centro.y < this->nivel_agua){
+			cuerpos->SetLinearDamping(VISCOSIDAD);
+			cuerpos->SetAngularDamping(1.7f);
+			if( ((Objeto*)(cuerpos->GetUserData())) &&((Objeto*)(cuerpos->GetUserData()))->esGusano() ){
+				Gusano* gusanoActual = (Gusano*)(cuerpos->GetUserData());
+				if(gusanoActual->entroAlAgua == false){
+					gusanoActual->entroAlAgua = true;
+					if(this->sonidoActual == NUMERO_SERIAL_AGUA){
+						this->sonidoActual = NUMERO_SERIAL_AGUA2;
+					}else{
+						this->sonidoActual = NUMERO_SERIAL_AGUA;
+					}
+				}
+			}
+		} else {
+			cuerpos->SetLinearDamping(0.0f);
+			cuerpos->SetAngularDamping(0.0f);
+		}
+	}
+}
+
+void Escenario::dibujarObjetos(){
+	//para cada objeto, si está activo, lo dibujo
+	this->offsetX = recorredorDeImagenes->getRectangulo()->x * ancho_px / recorredorDeImagenes->getAnchoImagen() * recorredorDeImagenes->getZoom();
+	this->offsetY = recorredorDeImagenes-> getRectangulo()->y * alto_px / recorredorDeImagenes->getAltoImagen() * recorredorDeImagenes->getZoom();
+	float dif = (recorredorDeImagenes->getAltoImagen() - recorredorDeImagenes->getRectangulo()->h);
+	for (int i=0; i<this->objetos->size(); i++){
+			if(this->objetos->at(i)->getCuerpo()->IsActive())
+				this->objetos->at(i)->dibujarConColor(this->renderer,this->alto_px,this->ancho_px,this->alto_un,this->ancho_un, 
+				this->recorredorDeImagenes->getZoom(), offsetX , offsetY);
+	}
+
+	for (int i=0; i< this->gusanos->size(); i++){
+		if(this->gusanos->at(i)->estaEnMundo() != NULL){
+			this->gusanos->at(i)->dibujarConColor(this->renderer, this->alto_px, this->ancho_px, this->alto_un, this->ancho_un,
+				this->recorredorDeImagenes->getZoom(), offsetX, offsetY);
+		}
+	}
+	
+	
+}	
+
+void Escenario::incluirObjetosEnElMundo(b2World* mundo){
+	
+
+	Log log(pathLog);
+	if (this->miProcesador != NULL){
+	delete this->miProcesador; //posiblemente se haya creado uno antes
+	}
+	this->miProcesador = new ProcesadorDeTierra(&(this->imagen_tierra), &pathLog, this->alto_px, this->ancho_px, this->alto_px-this->nivel_agua*this->alto_px/this->alto_un);
+	
+	//Creo la tierra y la incluyo en el mundo
+	std::queue<float> *puntostierra = miProcesador->getColaDeAlturas();
+	this->miTierra = new Tierra(puntostierra, miProcesador->getCantidadDePuntosVerticales(), miProcesador->getCantidadDePuntosHorizontales(),
+								this->alto_un, this->ancho_un, mundo);
+	miTierra->dibujar(renderer,alto_px,ancho_px,alto_un,ancho_un);
+	bool solapa;
+	int tamanio = this->objetos->size();
+	for (int i = 0; i < this->objetos->size(); i++){
+		solapa = false;
+		this->objetos->at(i)->incluirEnMundo(mundo);
+		
+		//Compruebo si el cuerpo está dentro de la tierra
+		if((this->objetos->at(i)->getCuerpo()->GetWorldCenter().x > 0) && (this->objetos->at(i)->getCuerpo()->GetWorldCenter().x  < ancho_un)){
+			if( objetos->at(i)->solapaConAlgunaTierra(this->miTierra->getContorno(), this->alto_px, this->ancho_px, this->alto_un,this->ancho_un) ){
+					objetos->at(i)->getCuerpo()->SetActive(false); //si está adentro, inactivo el cuerpo
+					solapa = true;
+					std::stringstream s;
+					s << "Warning: El objeto " << i + 1 << " fue ingresado dentro de la tierra, fue eliminado.";
+					log.escribirLog(s.str());
+			}
+		}
+	
+		int contadorCuerpos = mundo->GetBodyCount();	
+		//Compruebo solapamiento con otros objetos (y borde de la tierra, que es un objeto)
+		b2Shape* miForma = objetos->at(i)->getCuerpo()->GetFixtureList()->GetShape();
+	
+		for(b2Body* cuerpos = mundo->GetBodyList(); cuerpos && (!solapa); cuerpos = cuerpos->GetNext() ){
+			
+			if(cuerpos->IsActive()){
+				for(int j = 0; j < cuerpos->GetFixtureList()->GetShape()->GetChildCount() && !solapa; j++){
+					if((objetos->at(i)->getCuerpo() != cuerpos) &&(b2TestOverlap(miForma, 0, cuerpos->GetFixtureList()->GetShape(), j,
+						this->objetos->at(i)->getCuerpo()->GetTransform(),cuerpos->GetTransform() ) )){
+						objetos->at(i)->getCuerpo()->SetActive(false); //si se solapa con alguno, lo inactivo
+						solapa = true;
+						std::stringstream s;
+						if (contadorCuerpos == 1){
+                                                        s.clear();
+                                                        s << "Warning: El objeto " << i + 1 << " fue ingresado solapado con la tierra.";
+                                                } else {
+                                                        s << "Warning: El objeto " << i + 1 << " fue ingresado solapado con el objeto " << contadorCuerpos - 1 << " y fue eliminado.";
+                                                }
+                                                log.escribirLog(s.str());
+                                        }
+                                }
+                        }
+                        contadorCuerpos--;
+                }
+        }
+}
+
+float Escenario::getZoom(){
+	return this->recorredorDeImagenes->getZoom();
+}
+
+void Escenario::inicializarRecursosImagenes(){
+    
+	//para dibujar el agua
+
+	this->rectanguloAgua = new SDL_Rect();
+	this->rectanguloAgua->h = (2*this->alto_px);
+    this->rectanguloAgua->w = this->ancho_px;
+    this->rectanguloAgua->x = 0;
+    this->rectanguloAgua->y = this->alto_px- this->nivel_agua * (this->alto_px/ this->alto_un);
+	this->surfaceDeFondo = IMG_Load("private/agua.png");
+	this->surfaceDelCirculo = IMG_Load("private/circulo.png");
+
+	this->texturaDeFondo = SDL_CreateTextureFromSurface(renderer,surfaceDeFondo);
+	
+	//para dibujar la tierra
+	SDL_Surface* unSurface = miProcesador->getSurfaceDeLaTierra();	
+	this->unaTextura = SDL_CreateTextureFromSurface(renderer, unSurface);
+	
+	//para dibujar el cielo
+	SDL_Surface* surfaceDelCielo = IMG_Load((this->imagen_cielo).c_str());
+	this->textureDelCielo = SDL_CreateTextureFromSurface(renderer,surfaceDelCielo);
+
+	this->recorredorDeImagenes = new RecorredorDeImagenes(miProcesador->getSurfaceDeLaTierra()->w,
+	miProcesador->getSurfaceDeLaTierra()->h, this->alto_px, this->ancho_px, this->alto_un, this->ancho_un);
+	
+}
+
+void Escenario::incrementarZoom(){
+	this->recorredorDeImagenes->incrementarZoom();
+}
+
+void Escenario::decrementarZoom(){
+	this->recorredorDeImagenes->decrementarZoom();	
+}
+
+void Escenario::desplazarHacia(Direccion unaDireccion){
+	this->recorredorDeImagenes->desplazarHacia(unaDireccion);
+}
+
+void Escenario::dibujarEscenario(){
+	
+	//borro pantalla anterior
+	SDL_RenderClear(this->renderer);
+
+		
+	//dibujo el cielo
+	SDL_RenderCopy(this->renderer,this->textureDelCielo,NULL,NULL);
+	
+	
+	SDL_Rect rectanguloOrigen;
+	rectanguloOrigen.x = 0;
+	float numero1 = 1.0f/recorredorDeImagenes->getZoom();
+	float numero2 = 1.0f-numero1;
+	rectanguloOrigen.y = (miProcesador->getSurfaceDeLaTierra()->h)*(numero2);
+	rectanguloOrigen.h = (miProcesador->getSurfaceDeLaTierra()->h)*(numero1);
+	rectanguloOrigen.w = (miProcesador->getSurfaceDeLaTierra()->w)*(numero1);
+
+	//dibujo la tierra
+	SDL_RenderCopy(this->renderer,this->unaTextura,this->recorredorDeImagenes->getRectangulo(),NULL);
+	//dibujo los objetos
+	this->dibujarObjetos();
+	
+	SDL_Delay(1);
+}
+
+void Escenario::resetEquipos(b2World* unMundo){
+	int tope = this->equiposEnEscenario;
+	this->equiposEnEscenario = 0;
+	
+	std::vector<Gusano*>* aux = this->gusanos;
+	
+	this->gusanos = new std::vector<Gusano*>();
+	this->inicializarGusanos();
+
+	std::string nombre = "Equipo ";
+	for(int i = 0; i < tope; i++){
+		this->agregarNuevoEquipo("Equipo "+i,unMundo);
+	}
+	for (int i= 0; i < this->gusanos->size(); i++){
+		this->gusanos->at(i)->pintarEnColor = aux->at(i)->pintarEnColor;
+	}
+	delete aux;
+}
+
+bool Escenario::verificarMunicionActual(){
+	
+			
+			return true;
+}
+
+void Escenario::recortarImagenEnPosicion(float posicionX, float posicionY, float radio){
+
+	//busco la posicion a partir de la cual tengo que recortar el surface del circulo
+	//para ello le resto su radio horizontalmente como verticalmente
+
+	posicionX = posicionX * this->miProcesador->getSurfaceDeLaTierra()->w / this->ancho_un;
+	posicionY = miProcesador->getSurfaceDeLaTierra()->h - posicionY * this->miProcesador->getSurfaceDeLaTierra()->h / this->alto_un;
+	
+	if((posicionX > 0) && (posicionY > 0)){
+		int radioX = (int)(radio*this->miProcesador->getSurfaceDeLaTierra()->w / this->ancho_un);
+		int radioY = (int)(radio*this->miProcesador->getSurfaceDeLaTierra()->h / this->alto_un);
+
+		int posicionXInicialEnTierra = posicionX - radioX;
+		int posicionYInicialEnTierra = posicionY - radioY;
+	
+		double factorX = radioX*2.0f/this->surfaceDelCirculo->w;
+		double factorY = radioY*2.0f/this->surfaceDelCirculo->h;
+
+		//me hace un resize del surface del circulo
+		SDL_Surface* surfaceActualDelCirculo =  zoomSurface(surfaceDelCirculo, factorX, factorY,
+			SMOOTHING_ON);
+
+
+		Uint32* pixelActualDelCirculo, *pixelActualDeLaTierra;		
+
+		int limiteSuperiorFilas = 0;
+		int limiteSuperiorColumnas = 0;
+
+		//la diferencia es la cantidadDePixeles a Comparar
+		int diferencia = this->miProcesador->getSurfaceDeLaTierra()->w - posicionXInicialEnTierra;
+	
+		if (diferencia > surfaceActualDelCirculo->w){
+			limiteSuperiorColumnas = surfaceActualDelCirculo->w;
+		}else if (diferencia > 0 ){
+			limiteSuperiorColumnas = diferencia;
+		}
+
+		diferencia = this->miProcesador->getSurfaceDeLaTierra()->h - posicionYInicialEnTierra;
+
+		if (diferencia > surfaceActualDelCirculo->h){
+			limiteSuperiorFilas = surfaceActualDelCirculo->h;
+		}else if (diferencia > 0){
+			limiteSuperiorFilas = diferencia;		
+		}
+
+
+		SDL_LockSurface(miProcesador->getSurfaceDeLaTierra());
+		SDL_LockSurface(surfaceActualDelCirculo);
+
+		//Ahora debo recorrer toods esos pixeles y sacarle toda la transparencia
+	
+		for (unsigned int i = 0; i < limiteSuperiorFilas ; i++){
+			for (unsigned int j = 0; j < limiteSuperiorColumnas ; j++){
+				pixelActualDelCirculo = (Uint32*)surfaceActualDelCirculo->pixels + i * surfaceActualDelCirculo->w + j;
+				if (miProcesador->getParteAlpha(pixelActualDelCirculo,surfaceActualDelCirculo->format) != 0){
+					pixelActualDeLaTierra = this->miProcesador->getPixelEnLaPosicion(posicionYInicialEnTierra+i,posicionXInicialEnTierra+j);
+					//que me importa el color que le pongo..
+					miProcesador->setColorRGBAenPixel(pixelActualDeLaTierra,miProcesador->getSurfaceDeLaTierra()->format,
+						0,0,0,0);
+				}
+
+			}
+
+		}
+	
+
+	
+		SDL_UnlockSurface(miProcesador->getSurfaceDeLaTierra());
+		SDL_UnlockSurface(surfaceActualDelCirculo);
+		if (unaTextura != NULL) SDL_DestroyTexture(unaTextura);
+		unaTextura = SDL_CreateTextureFromSurface(renderer,miProcesador->getSurfaceDeLaTierra());
+		SDL_RenderPresent(renderer);
+	}
+}
+
+bool Escenario::equipoTieneGusanosVivos(int equipo){
+	for(int i = (equipo) * GUSANOS_POR_EQUIPO; i < (equipo) * GUSANOS_POR_EQUIPO + GUSANOS_POR_EQUIPO; i++){
+		if((this->gusanos->at(i)->vida > 0) && (this->gusanos->at(i)->getCuerpo()->GetPosition().y >= this->nivel_agua )) return true;
+	}
+	return false;
+}
+
+Gusano* Escenario::elegirGusanoVivoDe(int equipo){
+	Gusano* gus = NULL;
+	bool encontrado = false;
+	for(int i = (equipo) * GUSANOS_POR_EQUIPO; (i < (equipo) * GUSANOS_POR_EQUIPO + GUSANOS_POR_EQUIPO) && !encontrado; i++){
+		gus = this->gusanos->at(i);
+		if((gus->vida > 0) && ( gus->getCuerpo()->GetPosition().y >= this->nivel_agua ))encontrado = true;
+	}
+	return gus;
+}

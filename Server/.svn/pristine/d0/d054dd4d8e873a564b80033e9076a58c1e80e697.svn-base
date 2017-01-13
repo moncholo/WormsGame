@@ -1,0 +1,803 @@
+
+
+////////////////////////// FUNCIONES DE CLASE JUEGO ??? //////////////////////////////////
+#include "Parseador.h"
+#include "Servidor.h"
+
+int numRandom1(int min, int max){
+	std::random_device rd;
+	return ((rd() % (max-min+1)) + min);
+}
+
+int cronometrarTurno(void *unServer){
+	Servidor* elServer = (Servidor*)unServer;
+	while(elServer->trabajando){
+		if( !(elServer->pausa) && (elServer->miEscenario->municionActual == NULL) && !(elServer->gusanoCargandoDisparo)){
+			elServer->tiempoRestanteTurno --;
+		}
+		SDL_Delay(1000);
+	}
+	return 0;
+}
+
+class QueryCallback : public b2QueryCallback {
+	public:
+        QueryCallback(const b2Vec2& point) {
+			m_point = point;
+			m_fixture = NULL;
+        }
+        bool ReportFixture(b2Fixture* fixture) {
+			b2Body* body = fixture->GetBody();
+			if (body->GetType() == b2_dynamicBody) {
+				bool inside = fixture->TestPoint(m_point);
+				if (inside) {
+					m_fixture = fixture;
+
+					return false;
+				}
+			}
+			return true;
+        }
+        b2Vec2 m_point;
+        b2Fixture* m_fixture;
+};
+
+void Servidor::seleccionarCuerpo(Escenario* unEscenario, b2World* unMundo, Gusano** gusano, int xPx, int yPx) {
+        /*if((*cuerpo) != NULL){
+                Objeto* objeto = (Objeto*) ((*cuerpo)->GetUserData());
+                objeto->setElegido(false);
+        }*/
+        if((gusano != NULL) && ((*gusano) != NULL)  ) (*gusano)->setElegido(false);
+		
+       // float xUn, yUn;
+
+        //float escalaX = unEscenario->ancho_px / unEscenario->ancho_un;
+        //float escalaY = unEscenario->alto_px / unEscenario->alto_un;
+
+        //xUn= ((float)xPx + unEscenario->getOffsetX() )  / escalaX / unEscenario->recorredorDeImagenes->getZoom();
+        //yUn= ( unEscenario->alto_px - (((float)yPx + unEscenario->getOffsetY() ) / unEscenario->recorredorDeImagenes->getZoom() ) ) / escalaY;
+
+        b2Vec2 p;
+        p.Set(xPx, yPx);
+		
+        b2AABB aabb;
+        b2Vec2 d;
+        d.Set(0.01f, 0.01f);
+        aabb.lowerBound = p - d;
+        aabb.upperBound = p + d;
+
+        QueryCallback callback(p);
+        unMundo->QueryAABB(&callback, aabb);
+
+        if (callback.m_fixture){
+			//std::cout << "seleccionado un cuerpo" << std::endl;
+			b2Body *seleccionado = callback.m_fixture->GetBody();
+			//*cuerpo = callback.m_fixture->GetBody();
+			Objeto* objeto = (Objeto*)((seleccionado)->GetUserData());
+			if ( objeto->esGusano() ){
+				(*gusano) = (Gusano*)objeto;
+				objeto->setElegido(true);
+				
+			}
+        }
+}
+
+SDL_Window* crearVentana(Escenario* escenario, Log log) {
+
+        SDL_Window* window = NULL;
+
+        //Creo la ventana del juego, centrada en la pantalla, con los valores que provee el escenario
+        window = SDL_CreateWindow("WORMS ARMAGEDDON", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, escenario->ancho_px, escenario->alto_px, 
+                SDL_WINDOW_SHOWN);
+
+        //Chequeo si la ventana se creó correctamente
+        if(window==NULL){               
+			log.escribirLog("Fatal error: No se pudo crear la ventana de la aplicación");
+			log.escribirLog("############################ FIN DE LA EJECUCIÓN ###################################");
+			SDL_Quit(); 
+			exit(1);
+        }
+
+        //seteo el renderer que se encargará de dibujar el juego
+        escenario->renderer = SDL_CreateRenderer(window, -1, 0);
+        
+        return window;
+}
+
+////////////////////////// FUNCIONES DE CLASE JUEGO ??? //////////////////////////////////
+
+Servidor::Servidor(int puerto) {
+	puerto_donde_atiende = puerto;
+	socket = new Socket(puerto_donde_atiende);
+	socketS = socket->socket_;
+	//accionDeCliente = new mensajeFinal;
+	accionDeCliente = NULL;
+	juegoActual = new SerializacionServidor(); //ojaldre con esto. constructor por defecto no def
+	//juegoActual = new char[TAM_DE_LO_Q_MANDA_CLIENTE];
+	//juegoActual = "estado del juego 1";
+	miEscenario = NULL;
+	pausa = true;
+	unSemaforoAgregoEquipo = SDL_CreateSemaphore(1);
+	this->gusanosSeleccionados = new std::vector<Gusano*>;
+	unSemTocoJuegoActual = SDL_CreateSemaphore(1);
+	semHuboAccion =  SDL_CreateSemaphore(1);
+	semSeleccionados =  SDL_CreateSemaphore(1);
+	semReconstruccionTierra = SDL_CreateSemaphore(1);
+	for (int i = 0; i < CantidadMaximaJugadores; i++){
+		this->gusanosSeleccionados->push_back(NULL);
+	}
+	potencia = 0;
+	clientesActivos = 0;
+	tiempoRestanteTurno = TIEMPO_POR_TURNO;
+	gusanoCargandoDisparo = false;
+}
+
+void Servidor::escucharClientes () {
+	Log log(PATH_LOG);
+	int t = listen(socketS, 5);
+    if (t == -1) {
+		log.escribirLog("Error cuando se intento comenzar a escuchar en socket servidor.");
+		return;						
+	}
+}
+
+#define TAM_NOMBRE_CLIENTE 30
+std::string Servidor::preguntarNombre(int socketC) {
+	char buffer[TAM_NOMBRE_CLIENTE] = {0};
+	Socket* socket = new Socket();
+	socket->socketC = socketC;
+	socket->recibirInfo(buffer, TAM_NOMBRE_CLIENTE);	
+
+	char aceptando[60] = "El servidor lo acepto. Comprobando su nombre de usuario...";
+	socket->enviarInfo(aceptando, strlen(aceptando));
+
+	std::string nombre(buffer);
+	delete socket;
+	return nombre;
+}
+
+void Servidor::aceptarClientes () {
+	std::string nombreUsuarioRecienConect;
+	char buffer[2] = " ";
+	Log log(PATH_LOG);
+	SOCKADDR_IN cliente_addr;
+	int cliente_len = sizeof(SOCKADDR_IN);
+	bool nuevoCliente = true;
+	bool iterar = true;
+	int numeroDeCliente = 0;
+	std::cout << "aceptando..."<<std::endl;
+	int socketC = accept(socketS, (struct sockaddr*) &cliente_addr, &cliente_len);
+
+	void* ptr = NULL;
+	if (socketC == -1) {
+		log.escribirLog("No se pudo aceptar el cliente.");
+		return;
+	} else {
+		nombreUsuarioRecienConect = preguntarNombre(socketC);
+
+		while (iterar && (clientes.size()!= 0)) {
+			iterar = false;
+			int j = 0;
+			for (std::vector<Servidor_Atendedor*>::iterator it = clientes.begin(); it != clientes.end(); ++it, j++ ) {
+				if (!((*it)->nombreUsuario.compare(nombreUsuarioRecienConect))) {
+					if (!(*it)->activo) {
+						(*it)->reasignarSocket(socketC);
+						(*it)->socket->recibirInfo(buffer, 1);
+						(*it)->socket->enviarInfo("1", 1);
+						(*it)->run();
+						clientesActivos++;
+						nuevoCliente = false;
+						iterar = false;
+						std::cout << "Se reconecto un cliente." << std::endl;
+						
+						//seteo los gusanos visibles
+						for(int a=j*CantidadMaximaGusanosPorJugador; (a-j*CantidadMaximaGusanosPorJugador)< CantidadMaximaGusanosPorJugador ; a++){
+							this->miEscenario->gusanos->at(a)->pintarEnColor = true;
+						}
+					} else {
+						std::cout << "Ya existe un jugador activo con ese nombre." << std::endl;
+						Socket* socket = new Socket();
+						socket->socketC = socketC;
+						socket->recibirInfo(buffer, 1);
+						socket->enviarInfo("0", 1);
+						nombreUsuarioRecienConect = preguntarNombre(socketC);
+						delete socket;
+						iterar = true;
+						break;
+					}
+					
+				}
+			}
+		}
+		if (nuevoCliente) {
+			if(clientes.size() < MAX_CLIENTES){
+				Servidor_Atendedor* cliente = new Servidor_Atendedor(puerto_donde_atiende, socketC, clientes.size());
+				cliente->socket->recibirInfo(buffer, 1);
+				cliente->socket->enviarInfo("1", 1);
+				std::cout << "creo hilo servidor: " << puerto_donde_atiende << std::endl;
+				cliente->nombreUsuario = nombreUsuarioRecienConect;	
+				cliente->serverDondePertenece = this;
+				clientes.push_back(cliente);
+				std::cout << "clientes.size(): " << clientes.size() << std::endl;
+		
+				SDL_SemTryWait(this->unSemaforoAgregoEquipo);
+				bool pausaAnt = pausa;
+				pausa = true;
+				this->miEscenario->agregarNuevoEquipo(cliente->nombreUsuario, this->mundo);
+				pausa = pausaAnt;
+				SDL_SemPost(this->unSemaforoAgregoEquipo);
+		
+				cliente->run();
+				clientesActivos++;
+
+				std::stringstream s;	s << "PUERTO " <<puerto_donde_atiende << ". Conexión aceptada.";
+				log.escribirLog(s.str().data());
+				numeroDeCliente++;
+			}
+			else{
+				std::cout << "servidor completo, no entra nuevo usuario" << std::endl;
+			}
+		}
+	}
+	if (clientes.size() == miEscenario->equiposPermitidos){
+		avisarComienzoDelJuego(true);
+		this->miEscenario->sonidoActual = NUMERO_SERIAL_FONDO;
+	}
+}
+
+
+int Servidor::esperaCierre() {
+	char buffer[10] = "";
+	while (buffer[0] != 'q' && trabajando) { 
+		std::cin >> buffer;
+		SDL_Delay(20);
+		if (buffer[0] == 'q') {std::cout << "bufferq: " <<buffer<<std::endl; trabajando = false;}
+	}
+	
+	return 0;
+}
+
+void Servidor::run(){
+
+	SDL_Delay(1000);
+	int i = 0;
+	while (trabajando) {
+		escucharClientes();
+		if ((clientes.size() == miEscenario->equiposPermitidos) && (!i)) {
+			//SDL_Delay(1000);
+			std::cout << "Server completo. No se aceptan mas conexiones."<<std::endl;
+			 i++;
+		}
+		while (trabajando && (clientes.size() < miEscenario->equiposPermitidos)) {
+			avisarComienzoDelJuego(false);
+			aceptarClientes();
+		}
+	}
+}
+
+void Servidor::avisarComienzoDelJuego(bool start) {
+	juegoActual->jugando = start;
+}
+
+int aux3(void* server) {
+	((Servidor*)server)->run();
+	return 0;
+}
+void Servidor::start() {
+	trabajando = true;
+	hilo = SDL_CreateThread(aux3, "run", (void*)this);
+}
+
+void Servidor::hayQueTerminar() {
+	trabajando = false;
+	std::cout << "terminando hilos" <<std::endl;
+	std::cout << "clientes.size(): " << clientes.size() <<std::endl;
+	for (std::vector<Servidor_Atendedor*>::iterator it = clientes.begin(); it != clientes.end(); ++it) {
+		(*it)->hayQueTerminar();	// (*it)->join((*it)->getHilo(), NULL);
+		//clientes.erase(clientes.begin());
+		//delete (*it);
+		//std::cout << "clientes.size(): " << clientes.size() <<std::endl;
+	}
+	shutdown(socketS, 2);		// aca o abajo desp de terminar todos los Servidor_Atendedor??
+	closesocket(socketS);
+	WSACleanup();
+}
+
+int esperoCierre(void* server) {
+	((Servidor*)server)->esperaCierre();
+	return 0;
+}
+
+bool Servidor::hayAlgunClienteActivo(){
+	for(int i = 0; i < this->clientes.size(); i++){
+		if (this->clientes.at(i)->activo) return true;
+	}
+	return false;
+}
+
+
+void Servidor::evolucionar (std::vector<Gusano*>* vectorGusanos,bool* pausa) {
+	int i=0;
+
+	SDL_SemWait(this->semHuboAccion);
+	mensajeFinal accionParseada = *this->accionDeCliente;
+	SDL_SemPost(this->semHuboAccion);
+	Gusano** gusanoSeleccionado = NULL;
+	SDL_SemWait(this->semSeleccionados);
+
+	if ((accionParseada.idCliente>=0)&&((accionParseada.idCliente) < CantidadMaximaJugadores)){
+		 gusanoSeleccionado = &vectorGusanos->at(accionParseada.idCliente);
+	}
+
+	bool puedoMoverlo =  false;
+
+	if((gusanoSeleccionado != NULL) && (*gusanoSeleccionado != NULL) && (this->miEscenario->turnoDeEquipo == accionParseada.idCliente)) {
+
+		puedoMoverlo = ( (accionParseada.idCliente == miEscenario->turnoDeEquipo ));
+		puedoMoverlo = (puedoMoverlo) && ((accionParseada.idCliente) == ((*gusanoSeleccionado)->equipo));
+		puedoMoverlo = puedoMoverlo && ( (*gusanoSeleccionado)->vida > 0);
+
+	}
+	SDL_SemPost(this->semSeleccionados);
+	switch (accionParseada.keyLectura){
+		case mascaraClick:
+			SDL_SemWait(this->semSeleccionados);
+			//std::cout << "El loco hizo click x: "<< accionParseada->xMouse << " y: " << accionParseada->yMouse << std::endl;
+			seleccionarCuerpo(miEscenario, mundo, gusanoSeleccionado, accionParseada.xMouse,accionParseada.yMouse);
+
+			//if(*gusanoSeleccionado)
+				//std::cout << "SELECCIONADO!"<< std::endl;
+			SDL_SemPost(this->semSeleccionados);
+			break;
+
+		case mascaraEsc:
+			//std::cout<<"entro a la mascara" << std::endl;
+
+
+			for (int i=0; i<CantidadMaximaGusanosPorJugador; i++){
+				this->miEscenario->gusanos->at(accionParseada.idCliente*CantidadMaximaGusanosPorJugador + i) ->pintarEnColor = false;
+
+			}
+			if(this->miEscenario->turnoDeEquipo == accionParseada.idCliente){
+				miEscenario->avanzarTurno();
+				this->tiempoRestanteTurno = TIEMPO_POR_TURNO;
+				while( hayAlgunClienteActivo() &&(!clientes.at(this->miEscenario->turnoDeEquipo)->activo)){
+					miEscenario->avanzarTurno();
+					this->tiempoRestanteTurno = TIEMPO_POR_TURNO;
+				}
+			}
+			
+			//for(int a=accionParseada.idCliente*CantidadMaximaGusanosPorJugador; (a-accionParseada.idCliente*CantidadMaximaGusanosPorJugador) < CantidadMaximaGusanosPorJugador ; a++){
+			//		this->miEscenario->gusanos->at(a)->pintarEnColor = false;
+			//		//std::cout << "Entro a la mascara de escape" <<std::endl;
+			//}
+			//
+
+			
+			//std::cout << "El loco hizo ESC, SALIR!"<< std::endl;
+			break;
+
+		case mascaraLeft:
+			
+			//std::cout << "El loco toco IZQUIERDA, mover gusano >>>"<< std::endl;
+			if((gusanoSeleccionado != NULL) &&(*gusanoSeleccionado != NULL) && (puedoMoverlo))
+				(*gusanoSeleccionado)->moverIzq();
+			break;
+
+		case mascaraPause:
+
+			std::cout << "El loco puso PAUSE, cagon!" << std::endl;
+			*pausa = !(*pausa);
+				
+		
+			break;
+
+		case mascaraRight:
+			
+			//std::cout << "El loco toco DERECHA, mover gusano <<<" << std::endl;
+			if((gusanoSeleccionado != NULL) &&(*gusanoSeleccionado != NULL) && (puedoMoverlo)){
+					(*gusanoSeleccionado)->moverDer();
+			}
+			
+			break;
+
+		case mascaraUp:
+
+			//std::cout << "El loco toco ARRIBA, gusano SALTAR!" << std::endl;
+			if((gusanoSeleccionado != NULL) && (*gusanoSeleccionado != NULL) && (puedoMoverlo))
+				if( (*gusanoSeleccionado)->saltar()){
+					//this->miEscenario->sonidoActual = numRandom1(MIN_SALTAR, MAX_SALTAR);
+				}
+			
+			break;
+
+		case mascaraKeyUp:
+
+			if((gusanoSeleccionado != NULL) &&(*gusanoSeleccionado != NULL) && (puedoMoverlo)){
+
+				(*gusanoSeleccionado)->frenar();
+
+				if(this->potencia != 0){
+
+					Arma* unArma = clientes.at(accionParseada.idCliente)->armas->at(accionParseada.arma);
+
+					unArma->ejecutar((*gusanoSeleccionado)->getCuerpo()->GetPosition().x, (*gusanoSeleccionado)->getCuerpo()->GetPosition().y, this->miEscenario->angulo, 
+							this->potencia,(this->miEscenario->municionActual));
+					
+					miEscenario->idArma = accionParseada.arma;
+
+					this->potencia = 0;
+					this->gusanoCargandoDisparo = false;
+					//SONIDO DISPARO ARMAS
+					if(miEscenario->idArma == 2){ //SI ES BAZOOKA
+						miEscenario->sonidoActual = numRandom1(MIN_DISP_BAZOOKA, MAX_DISP_BAZOOKA);
+						std::cout << "SONido: " << miEscenario->sonidoActual << std::endl;
+					}
+					if(miEscenario->idArma == 1){ //SI ES GRANADA
+						miEscenario->sonidoActual = NUMERO_SERIAL_LANZO_GRANADA;
+					}
+					if(miEscenario->idArma == 3){
+						miEscenario->sonidoActual = NUMERO_SERIAL_LANZO_GRANADASANTA;
+					}
+					if(miEscenario->idArma == 4){
+						miEscenario->sonidoActual = numRandom1(MIN_DINAMITA, MAX_DINAMITA);
+					}
+				}
+
+			}
+
+			break;			
+		case mascaraAnguloUp:
+			if((gusanoSeleccionado != NULL) &&(*gusanoSeleccionado != NULL) && (puedoMoverlo)){
+				this->miEscenario->angulo+= 5;
+			}
+
+			break;
+		case mascaraAnguloDown:
+			if((gusanoSeleccionado != NULL) &&(*gusanoSeleccionado != NULL) && (puedoMoverlo)){
+				this->miEscenario->angulo-= 5;
+			}
+
+			break;
+			
+		case mascaraDisparo:
+
+			if((gusanoSeleccionado != NULL) &&(*gusanoSeleccionado != NULL) && (puedoMoverlo)){
+				//rebentar el chain boost y pasarselo a box2d
+				//SDL_SemWait(this->unSemTocoJuegoActual);
+				if( (this->clientes.at(this->miEscenario->turnoDeEquipo)->armas->at(accionParseada.arma)->municiones > 0) && (this->miEscenario->municionActual == NULL) ){
+					miEscenario->idArma = accionParseada.arma;
+					this->gusanoCargandoDisparo = true;
+					this->potencia += 100;
+				
+
+					switch(miEscenario->idArma){
+						case 1:
+						case 2:
+						case 3:
+							miEscenario->sonidoActual = NUMERO_SERIAL_CARGA_POTENCIA;
+							break;
+					}
+				}
+
+			}
+			//
+
+			break;
+	}
+
+}
+
+// esta funcion cumple la funcion del juego.
+int Worms(void* server) {
+
+
+	
+	Servidor* servidor = (Servidor*)server;
+
+	// Crear el escenario, el mundo y demas levantando el yaml. Inicializar servidor->juegoActual;
+
+	//Inicializo SDL
+	ManejoSerializacionServidor* unSerialServer = new ManejoSerializacionServidor();
+    
+    SDL_Init(SDL_INIT_VIDEO);
+	Log log(PATH_LOG);
+	log.escribirLog("############################ COMIENZO DE LA EJECUCIÓN ###################################");
+
+	Escenario* miEscenario = new Escenario(); //Donde ocurre la magia
+	
+	//MUSICA DE FONDO
+	miEscenario->sonidoActual = NUMERO_SERIAL_FONDO2;
+	
+	
+	servidor->miEscenario = miEscenario;
+
+	Parseador* unParser = new Parseador(); //para cargar el escenario desde archivo
+
+	unParser->parsearEscenario(miEscenario, PATH_ESCENARIO, log); //cargo datos desde archivo "escenario.yaml"
+
+	//creo la ventana del juego
+    SDL_Window* window = crearVentana(miEscenario, log);
+       
+	// Vector de la gravedad
+	b2Vec2 gravity(0.0f, -10.0f);
+	// Mundo que vamos a utilizar 
+	b2World* mundo = new b2World(gravity);
+
+	servidor->mundo = mundo;
+
+	//cargo objetos en el mundo: tierra, figuras geométricas, etc. Verifica solapamientos en esta etapa.
+	miEscenario->incluirObjetosEnElMundo(mundo);
+	//configura imagenes de fondo, agua, etc
+	miEscenario->inicializarRecursosImagenes();
+
+    //LOOP DEL JUEGO
+	bool loop = true; //variable que controla el loop
+	//bool pausa = true; //variable que controla cuándo el juego está en pausa
+	SDL_Event evento; //variable para manejar eventos desde teclado
+
+	int teclaS = 0; //variable para manejar arranque y reinicio del juego
+	int x=0;
+	int y=0;
+	
+
+	//PRUEBAS GUSANOS
+	//Gusano* unGusanito = new Gusano("Rock", 1);
+		   
+	//unGusanito->incluirEnMundo(mundo);		
+	//PRUEBAS GUSANOS
+	//Gusano* unGusanito = new Gusano();
+
+	//unGusanito->incluirEnMundo(mundo);
+	//miEscenario->agregarNuevoEquipo("Equipo 1", mundo);
+	//SDL_Delay(50);
+
+	unSerialServer->serializar(miEscenario->gusanos, miEscenario->objetos,servidor->estadoOnline);
+	servidor->juegoActual = unSerialServer->getMensajeSerializado();
+
+	SDL_Surface* surfaceDeInicio = IMG_Load("inicio.jpg");
+	SDL_Texture* textureDeInicio = SDL_CreateTextureFromSurface(miEscenario->renderer,surfaceDeInicio);
+	SDL_RenderCopy(miEscenario->renderer,textureDeInicio,NULL,NULL);
+	SDL_RenderPresent(miEscenario->renderer);
+
+	std::cout<< "El tamanio del buffer es: "<< sizeof(SerializacionServidor) << std::endl;
+	std::cout<< "El tamanio de lo que manda el cliente es: " << sizeof(mensajeFinal) << std::endl;
+
+	SDL_Thread* cronometradorTurno = SDL_CreateThread(cronometrarTurno, "cronometrar", (void*)server);
+
+	bool auxHurry = false;
+	bool auxComentario = false;
+
+	while (loop && servidor->trabajando) {
+
+		if(servidor->tiempoRestanteTurno == 10 && !auxHurry){
+			servidor->miEscenario->sonidoActual = numRandom1(MIN_APURO, MAX_APURO);
+			auxHurry = true;
+		}
+		if(servidor->tiempoRestanteTurno == 9) auxHurry = false;
+
+		
+		if(servidor->tiempoRestanteTurno == 25 && !auxHurry){
+			servidor->miEscenario->sonidoActual = numRandom1(MIN_EXTRAS, MAX_EXTRAS);
+			auxHurry = true;
+		}
+		if(servidor->tiempoRestanteTurno == 24) auxHurry = false;
+
+		for (int i = 0; i < (servidor->miEscenario->gusanos->size()); i++) {
+			if (servidor->miEscenario->gusanos->at(i)->enMundo) servidor->miEscenario->gusanos->at(i)->estaMuerto(servidor->miEscenario->nivel_agua);
+		}
+		
+		if(servidor->tiempoRestanteTurno == 0){
+			if((servidor->gusanosSeleccionados->at(servidor->miEscenario->turnoDeEquipo) != NULL)){
+				servidor->gusanosSeleccionados->at(servidor->miEscenario->turnoDeEquipo)->frenar();
+			}
+			servidor->miEscenario->avanzarTurno();
+			servidor->tiempoRestanteTurno = TIEMPO_POR_TURNO;
+		}
+
+		SDL_SemWait(servidor->unSemaforoAgregoEquipo);
+		
+		//std::cout << sizeof(SerializacionServidor) << std::endl;
+		//std::cout << sizeof(mensajeFinal) << std::endl;
+		//std::cout << sizeof(bool) << std::endl;
+
+		SDL_SemPost(servidor->unSemaforoAgregoEquipo);
+		//chequeo si los cuerpos está en el agua, para modificar su comportamiento
+		miEscenario->comprobarSiCuerposEnAgua(mundo->GetBodyList());
+		
+		//miEscenario->miTierra->dibujar(miEscenario->renderer, miEscenario->alto_px, miEscenario->ancho_px, miEscenario->alto_un, miEscenario->ancho_un);
+
+		
+		SDL_SemWait(servidor->unSemTocoJuegoActual);
+
+
+
+		if (!servidor->pausa) mundo->Step(TIME_STEP, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
+
+		unSerialServer->serializar(miEscenario->gusanos, miEscenario->objetos,servidor->estadoOnline);
+		servidor->juegoActual = unSerialServer->getMensajeSerializado();
+		servidor->juegoActual->armaActual.disparoActivo = false;
+		servidor->juegoActual->turnoDeEquipo = miEscenario->turnoDeEquipo;
+		servidor->juegoActual->tiempoRestanteTurno = servidor->tiempoRestanteTurno;
+		servidor->juegoActual->armaActual.xExplosion = miEscenario->posXExplosion;
+		servidor->juegoActual->armaActual.yExplosion = miEscenario->posYExplosion;
+		if( servidor->gusanosSeleccionados->at(miEscenario->turnoDeEquipo) != NULL){
+			Gusano* gus = servidor->gusanosSeleccionados->at(miEscenario->turnoDeEquipo);
+			if(gus->vida > 0 && (gus->getCuerpo()->GetPosition().y >= miEscenario->nivel_agua)){
+				servidor->juegoActual->armaActual.yMira = servidor->gusanosSeleccionados->at(miEscenario->turnoDeEquipo)->getCuerpo()->GetPosition().y + 30*sin(miEscenario->angulo*M_PI/180.0f);
+				servidor->juegoActual->armaActual.xMira = servidor->gusanosSeleccionados->at(miEscenario->turnoDeEquipo)->getCuerpo()->GetPosition().x + 30*cos(miEscenario->angulo*M_PI/180.0f);
+			}
+			else{
+				servidor->juegoActual->armaActual.yMira = -3;
+				servidor->juegoActual->armaActual.xMira = -3;
+				if(miEscenario->equipoTieneGusanosVivos(gus->equipo)){
+					servidor->gusanosSeleccionados->at(miEscenario->turnoDeEquipo) = miEscenario->elegirGusanoVivoDe(gus->equipo);
+				}
+				else{
+					servidor->gusanosSeleccionados->at(miEscenario->turnoDeEquipo) = NULL;
+				}
+			}
+		}
+		if(miEscenario->municionActual){
+
+			servidor->juegoActual->armaActual.disparoActivo = true;
+			servidor->juegoActual->armaActual.idArma =  miEscenario->idArma;
+
+			if(miEscenario->municionActual != NULL){
+				if(miEscenario->idArma == 2){
+					servidor->juegoActual->armaActual.tiempoDeVida = -1;
+				}
+				else{
+					Arma* unArma = (Arma*)(miEscenario->municionActual->GetUserData());
+					if(miEscenario->idArma == 1){
+						Arma_Granada* unaGranada = (Arma_Granada*) unArma;
+						servidor->juegoActual->armaActual.tiempoDeVida = unaGranada->tiempoDeVida;
+					}
+					if(miEscenario->idArma == 3){
+						Arma_SantaGranada* unaGranada = (Arma_SantaGranada*) unArma;
+						servidor->juegoActual->armaActual.tiempoDeVida = unaGranada->tiempoDeVida;
+					}
+					if(miEscenario->idArma == 4){
+						Arma_Dinamita* unaDinamita = (Arma_Dinamita*) unArma;
+						servidor->juegoActual->armaActual.tiempoDeVida = unaDinamita->tiempoDeVida;
+						
+					}
+				}	
+			}
+
+			servidor->juegoActual->armaActual.x = miEscenario->municionActual->GetWorldCenter().x;
+			servidor->juegoActual->armaActual.y = miEscenario->municionActual->GetWorldCenter().y;
+			servidor->juegoActual->armaActual.radio =  miEscenario->municionActual->GetFixtureList()->GetShape()->m_radius*RADIO_BASE;
+
+			if(servidor->clientes.at(servidor->miEscenario->turnoDeEquipo)->armas->at(miEscenario->idArma)->verificarMunicionActual(miEscenario)){
+				miEscenario->avanzarTurno();
+				servidor->tiempoRestanteTurno = TIEMPO_POR_TURNO;
+				while(servidor->hayAlgunClienteActivo() && (!servidor->clientes.at(miEscenario->turnoDeEquipo)->activo)){
+					miEscenario->avanzarTurno();
+					servidor->tiempoRestanteTurno = TIEMPO_POR_TURNO;
+				}
+			}
+		}
+		
+		SDL_SemPost(servidor->unSemTocoJuegoActual);
+		//SDL_Delay(10);
+		//pinto el escenario: pinta el fondo, la tierra, el agua y los objetos
+		//miEscenario->dibujarEscenario();
+		
+		SDL_Delay(TIEMPO_DE_REFRESCO);
+		//unGusanito->dibujarConColor(miEscenario->renderer, miEscenario->alto_px, miEscenario->ancho_px, miEscenario->alto_un, miEscenario->ancho_un, miEscenario->recorredorDeImagenes->getZoom());
+    
+		//SDL_RenderPresent(miEscenario->renderer); //AFUERA DE DIBUJARESCENARIO PARA PRUEBAS
+		
+		if (SDL_PollEvent(&evento) && servidor->trabajando){	
+			
+			if(evento.type == SDL_KEYDOWN){
+				//no deberia reiniciar todo
+				switch( evento.key.keysym.sym ){
+				case SDLK_p: //tecla "p" para pausar el juego
+					if (teclaS != 0) servidor->pausa = !servidor->pausa;
+					break;
+				case SDLK_t:
+					//serializo una explosion en un entorno del primer cuerpo
+				
+					break;
+				case SDLK_s: //tecla "s" para iniciar/reiniciar el juego
+					if (teclaS == 0) {
+						servidor->pausa = false;
+						teclaS = 1;
+					}else{
+
+						SDL_SemWait(servidor->unSemTocoJuegoActual);
+						SDL_SemWait(servidor->semHuboAccion);
+						SDL_SemWait(servidor->semSeleccionados);
+						servidor->accionDeCliente = NULL;
+
+						log.escribirLog("---------------------------- SIMULACIÓN REINICIADA ----------------------------");
+
+						
+						for (int i = 0; i < CantidadMaximaJugadores; i++){
+							servidor->gusanosSeleccionados->at(i)=NULL;
+						}
+						
+
+						delete mundo;
+						miEscenario->municionActual = NULL;
+						mundo = new b2World(gravity);
+						miEscenario->incluirObjetosEnElMundo(mundo);
+						miEscenario->resetEquipos(mundo);
+						servidor->pausa = false;
+						
+						SDL_SemPost(servidor->semSeleccionados);
+						SDL_SemPost(servidor->semHuboAccion);
+						SDL_SemPost(servidor->unSemTocoJuegoActual);	
+					}
+					break;
+				}
+			}
+		}
+		
+	}
+	return 0;
+}
+
+int receptorEventos(void* server) {
+	Servidor* servidor = (Servidor*)server;
+	ManejoSerializacionServidor* unSerialServer = new ManejoSerializacionServidor();
+	bool huboAccion= false;
+	while (servidor->trabajando) {
+
+		SDL_SemWait(servidor->semHuboAccion);
+		huboAccion = servidor->accionDeCliente;
+		SDL_SemPost(servidor->semHuboAccion);
+
+		if (huboAccion) {
+
+				SDL_SemWait(servidor->unSemTocoJuegoActual);
+				//SDL_SemWait(servidor->semSeleccionados);
+
+				servidor->evolucionar (servidor->gusanosSeleccionados, &(servidor->pausa));
+
+				//SDL_SemPost(servidor->semSeleccionados);
+				servidor->accionDeCliente = NULL;
+				/*unSerialServer->serializar(servidor->miEscenario->gusanos, servidor->miEscenario->objetos,servidor->estadoOnline);
+				servidor->juegoActual = unSerialServer->getMensajeSerializado();*/
+				SDL_SemPost(servidor->unSemTocoJuegoActual);
+
+
+				/*for (std::vector<Servidor_Atendedor*>::iterator it = servidor->clientes.begin(); it != servidor->clientes.end(); ++it) {
+					if ((*it)->activo) {
+						(*it)->enviando = true;
+						std::cout << "server->juegoActual: " << servidor->juegoActual->vectorObjetosEnviables[2].y <<std::endl;
+						std::cout << "(*it)->socketC: " << (*it)->socket->socketC <<std::endl;
+					}
+				}*/
+		}
+	}
+	return 0;
+}
+
+int main (int argc, char* argv[]) {
+
+	Servidor* server = new Servidor(PUERTO_SERVER);
+
+	server->start();
+	//SDL_Delay(5000);
+
+	SDL_Thread* juego = SDL_CreateThread(Worms, "juego", (void*)server);	// este es el thread que corre el juego
+	SDL_Thread* receptorEventos_ = SDL_CreateThread(receptorEventos, "receptorEventos", (void*)server);
+	//SDL_Thread* esperoCierreServidor = SDL_CreateThread(esperoCierre, "esperaCierre", (void*)server);
+	
+	int* result = 0;
+	//SDL_WaitThread(esperoCierreServidor, result);
+	
+	SDL_WaitThread(juego, result);
+	SDL_WaitThread(receptorEventos_, result);
+	server->hayQueTerminar();
+	SDL_WaitThread(server->hilo, result);
+	
+	
+	std::cout << "Servidor cerro correctamente." << std::endl;
+	system("PAUSE");
+
+	return 0;
+}

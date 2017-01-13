@@ -1,0 +1,193 @@
+#include "Tierra.h"
+#include "Box2D\Box2D.h"
+#include <iomanip>
+#include <ctime>
+
+
+vectorChains* Tierra::getContorno(){
+	return this->vectorDeChains;
+}
+
+bool Tierra::tienePuntoAdentroDeLaTierra(double x, double y){
+	return this->procesadorDeGeometrias->puntoAdentroDeLaTierra(x,y);
+}
+
+//Crea el contorno de la tierra y ya lo agrega al mundo que se le pasa por parámetro
+Tierra::Tierra(std::queue<float>* listaPuntos, int altoPixelesDeLaImagen, int anchoPixelesDeLaImagen,
+				float altoUnidades, float anchoUnidades, b2World* mundo){
+	
+	bool pixelAnteriorTeniaTierra = false;
+	bool pixelActualTieneTierra = false;
+	 time_t _tm =time(NULL );
+
+	struct tm * curtime = localtime ( &_tm );
+	std::cout<<"The current date/time is:"<<asctime(curtime);
+	
+	this->vectorDePoligonos = new vectorPoligonos();
+
+	this->vectorDeChains = new vectorChains();
+
+	polygon poligonoActual;  //para cada tierra creo un poligono
+
+	//definiciones para tierra en Box2d
+	b2BodyDef contornoDef;
+	contornoDef.type = b2_staticBody;	
+
+	b2Vec2 puntos[MAX_PIXELES_IMAGEN_TIERRA];
+
+	//Hago el escalamiento de coordenadas mientras almaceno las cosas en un vector
+	int cantidadDePuntos = listaPuntos->size();
+	int indicePuntoTierraActual = 0;
+
+	if ((cantidadDePuntos) < MAX_PIXELES_IMAGEN_TIERRA){
+		for(float i = 0; i < cantidadDePuntos; i++){
+			double x = (i) * (anchoUnidades  / anchoPixelesDeLaImagen) ;
+			double y = listaPuntos->front() * (altoUnidades/ altoPixelesDeLaImagen) ;
+			
+			pixelActualTieneTierra = (y>0);
+
+			if(pixelAnteriorTeniaTierra){
+				if(pixelActualTieneTierra){
+					//sigo agregando puntos al chain actual
+					puntos[indicePuntoTierraActual].Set(x, y); //escalo las coordenadas y las almaceno en un vector
+					push_back(exterior_ring(poligonoActual)) (point(x,y));	
+					indicePuntoTierraActual++;
+				}else{
+					
+					//agrego punto final
+					puntos[indicePuntoTierraActual].Set(puntos[indicePuntoTierraActual-1].x,0);
+					indicePuntoTierraActual++;			
+					//al poligono lo cierro tambien..
+					push_back(exterior_ring(poligonoActual)) (point(puntos[indicePuntoTierraActual-1].x,0));		
+					push_back(exterior_ring(poligonoActual)) (point(puntos[0].x,puntos[0].y));	
+					
+					//crea la nueva tierra
+					b2Body* contornoTierra;
+					contornoTierra = mundo->CreateBody(&contornoDef);
+					b2ChainShape cadenaForma;
+					cadenaForma.CreateLoop(puntos, indicePuntoTierraActual);
+					contornoTierra->CreateFixture(&cadenaForma, 0.0f);
+					polygon unPoligono;
+					simplify(poligonoActual,unPoligono,1);
+					this->vectorDeChains->push_back(contornoTierra);
+					this->vectorDePoligonos->push_back(unPoligono);
+				
+					indicePuntoTierraActual = 0;
+					
+				}
+			}else{
+				if(pixelActualTieneTierra){
+					//new tierra actual
+					indicePuntoTierraActual = 0;
+					puntos[indicePuntoTierraActual].Set(x, 0);
+					push_back(exterior_ring(poligonoActual)) (point(x,0));	
+					
+					indicePuntoTierraActual++;
+					//agrego punto inicial
+					puntos[indicePuntoTierraActual].Set(x, y);
+					push_back(exterior_ring(poligonoActual)) (point(x,y));		
+					indicePuntoTierraActual++;
+				}
+			}
+
+			pixelAnteriorTeniaTierra = pixelActualTieneTierra;
+			listaPuntos->pop();
+		}
+		
+		if (indicePuntoTierraActual> 0){
+			
+			//agrego punto inicial
+			puntos[indicePuntoTierraActual].Set(puntos[indicePuntoTierraActual-1].x,0);
+			indicePuntoTierraActual++;
+
+			//crea la nueva tierra
+			b2Body* contornoTierra;
+			contornoTierra = mundo->CreateBody(&contornoDef);
+			b2ChainShape cadenaForma;
+			cadenaForma.CreateLoop(puntos, indicePuntoTierraActual);
+			contornoTierra->CreateFixture(&cadenaForma, 0.0f);
+			this->vectorDeChains->push_back(contornoTierra);				
+			
+			indicePuntoTierraActual = 0;			
+			
+		}
+
+
+		
+		//std::cout << "simplified: " << boost::geometry::dsv(vectorDePoligonos->at(0)) << std::endl;
+		this->procesadorDeGeometrias = new ProcesadorDeGeometrias(RADIO_BASE, mundo, this->vectorDeChains,
+								this->vectorDePoligonos);
+		this->procesadorDeGeometrias->convertirGeometriasAChain();
+		
+	}
+}
+
+void Tierra::explotarTierraEnPosicion(float posicionX, float posicionY, int radioArma){
+
+	this->procesadorDeGeometrias->explotarTierraEnPosicion(posicionX,posicionY, radioArma);
+}
+
+
+
+
+//dibuja el contorno de la tierra. usado para pruebas
+void Tierra::dibujar(SDL_Renderer* unRenderer, float altoVentana, float anchoVentana, float altoMapa, float anchoMapa){
+	float escalaX = anchoVentana / anchoMapa;
+	float escalaY = altoVentana / altoMapa;
+	
+	SDL_SetRenderDrawColor(unRenderer,0,0,0,255);
+	
+	SDL_RenderClear(unRenderer);
+
+	SDL_SetRenderDrawColor(unRenderer,255,0,0,255);
+	
+	//boost::geometry::for_each_point(poligonoCircular, list_coordinates<point>);
+	
+	SDL_RenderPresent(unRenderer);
+
+	for (unsigned int i=0; i < this -> vectorDeChains -> size(); i++){
+		if (this->vectorDeChains->at(i)->IsActive()){
+		b2Fixture *fixture = this->vectorDeChains->at(i)->GetFixtureList();
+
+		b2ChainShape *cadenaForma = (b2ChainShape*)fixture->GetShape();
+		b2EdgeShape linea;
+		SDL_SetRenderDrawColor(unRenderer, 255, 0, 0, 255);
+
+		for(int i=0; i < cadenaForma->GetChildCount(); i++){
+			cadenaForma->GetChildEdge(&linea, i);
+				SDL_RenderDrawLine(unRenderer,(escalaX) * ((&linea)->m_vertex1.x), altoVentana - (escalaY)*(&linea)->m_vertex1.y - 50, 
+				(escalaX)*((&linea)->m_vertex2.x),  altoVentana - (escalaY)*(&linea)->m_vertex2.y-50);
+		}
+	
+		}else{
+		//std::cout<< "Not Active" << std::endl;
+		}
+	}
+	
+	/*
+	BOOST_FOREACH(polygon const& poligono, *vectorDePoligonos){
+
+		boost::geometry::for_each_point(poligono, list_coordinates<point>);
+	}
+	
+
+	for (int i=0; i < unVector->size()-1; i++){
+		point* p0 = unVector->at(i);
+		point* p1 = unVector->at(i+1);
+
+		SDL_RenderDrawLine(unRenderer, 
+            escalaX * (get<0>(*p0)), altoVentana - (escalaY)* (get<1>(*p0)),
+            escalaX * (get<0>(*p1)) ,altoVentana -  (escalaY) * (get<1>(*p1)));
+	}
+
+	unVector->clear();
+	*/
+
+	SDL_RenderPresent(unRenderer);
+
+	time_t _tm =time(NULL );
+
+	struct tm * curtime = localtime ( &_tm );
+	//std::cout<<"The current date/time is:"<<asctime(curtime);
+	
+}

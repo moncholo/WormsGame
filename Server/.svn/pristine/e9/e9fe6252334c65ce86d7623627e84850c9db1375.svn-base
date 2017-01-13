@@ -1,0 +1,26 @@
+#ifndef _CUERPOGUSANO_H
+#define _CUERPOGUSANO_H
+
+#include "Box2D\Box2D.h"
+#include "PoligonoRegular.h"
+#include "Constantes.h"
+
+class CuerpoGusano{
+
+private:
+	PoligonoRegular* cuerpo1; 
+	//Circulo* cuerpo2;
+	//Circulo* cabeza;
+
+public:
+	CuerpoGusano(float posX, float posY, float r, float g, float b);
+	~CuerpoGusano();
+	void dibujar(SDL_Renderer* renderer, float altoVentana, float anchoVentana, float altoMapa, float anchoMapa,
+							 float factorDeZoom, float offsetX, float offsetY);
+	b2Body* getParte(int parte);
+	void setElegido(bool eleg);
+
+	void incluirEnMundo(b2World* unMundo);
+};
+
+#endif // !_CUERPOGUSANO_H

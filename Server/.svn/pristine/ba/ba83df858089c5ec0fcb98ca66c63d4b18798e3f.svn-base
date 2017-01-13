@@ -1,0 +1,108 @@
+#ifndef server_
+#define server_
+
+#include <iostream>
+#include "Log.h"
+#include "Sonido.h"
+
+class Servidor;
+#include "ManejoSerializacionCliente.h"
+#include "ManejoSerializacionServidor.h"
+#include "Servidor_Atendedor.h"
+#include "SDL_thread.h"
+#include "Escenario.h"
+#include "SDL.h"
+
+#include "Arma.h"
+#include "Arma_AtaqueAereo.h"
+#include "Arma_Bazooka.h"
+#include "Arma_Dinamita.h"
+#include "Arma_Granada.h"
+#include "Arma_Patada.h"
+#include "Arma_SantaGranada.h"
+#include "Constantes.h"
+
+
+#include "Socket.h"
+#include "SDL_thread.h"
+#include <string>
+
+
+
+class Servidor_Atendedor {
+public:
+	Socket* socket;
+	bool trabajando;
+	Servidor* serverDondePertenece;
+	bool activo;
+	bool enviando;
+	bool jugando;
+
+	int idCliente;
+	
+	std::string nombreUsuario;
+	SDL_Thread* hiloSend;
+	SDL_Thread* hiloRecv;
+	char* buffer_receptor;
+	
+	std::vector<Arma*>* armas;
+
+	Servidor_Atendedor();
+	Servidor_Atendedor(int portS, int socketC, int id);
+	void reasignarSocket(int socketC_);
+	void terminarConexion();
+	void run();
+	void hayQueTerminar ();
+	void cargarArmas(b2World* mundo, Escenario* unEscenario);
+
+};
+
+
+class Servidor {
+public:
+	int contadorEnvio;
+	int puerto_donde_atiende;
+	SOCKADDR_IN servidor_addr;
+	Socket* socket;
+	SOCKET socketS;
+	char buffer_receptor[50];
+	std::vector<Servidor_Atendedor*> Servidor::clientes;
+	SDL_Thread* hilo;
+	bool trabajando;
+	mensajeFinal* accionDeCliente;
+	SerializacionServidor* juegoActual;
+	Escenario* miEscenario;
+	b2World* mundo;
+	bool pausa;
+	int tiempoRestanteTurno;
+	bool gusanoCargandoDisparo;
+	int potencia;
+	SDL_semaphore* unSemaforoAgregoEquipo;
+	SDL_semaphore* unSemTocoJuegoActual;
+	bool estadoOnline[CantidadMaximaJugadores];
+	std::vector<Gusano*>* gusanosSeleccionados;
+	SDL_semaphore* semHuboAccion;
+	SDL_semaphore* semSeleccionados;
+	SDL_semaphore* semReconstruccionTierra;
+	SDL_semaphore* semNuevoCliente;
+	int clientesActivos;
+
+	Servidor(int puertoDondeAtiende);
+	void escucharClientes();
+	void aceptarClientes();
+	void repartirInfo(char* msj);
+	void terminarConexion();
+	int esperaCierre();
+	void run();
+	void start();
+	void hayQueTerminar();
+	void eliminarCliente(Servidor_Atendedor* cliente);
+	void evolucionar (std::vector<Gusano*>* vectorGusanos,bool* pausa);
+	std::string preguntarNombre(int socketC);
+	bool hayAlgunClienteActivo();
+	void avisarComienzoDelJuego(bool start);
+	void Servidor::seleccionarCuerpo(Escenario* unEscenario, b2World* unMundo, Gusano** gusano, int xPx, int yPx);
+	int Servidor::hayUnGanador();
+};
+
+#endif

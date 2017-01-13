@@ -1,0 +1,66 @@
+﻿Compilación iniciada a las 20/06/2014 14:01:21.
+     1>Proyecto "C:\Users\Juan\Documents\Taller de Programación I\Server\TpWorms.vcxproj" en el nodo 2 (Rebuild destinos).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /I./include/ /I./ /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /D _MBCS /D _CRT_SECURE_NO_WARNINGS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt Arma.cpp Arma_AtaqueAereo.cpp Arma_Bazooka.cpp Arma_Dinamita.cpp Arma_Granada.cpp Arma_Patada.cpp Arma_SantaGranada.cpp CajaMuniciones.cpp Circulo.cpp CuerpoGusano.cpp Escenario.cpp Gusano.cpp main.cpp ManejoSerializacionCliente.cpp ManejoSerializacionServidor.cpp Municion.cpp Municion_AtaqueAereo.cpp Municion_Bazooka.cpp Municion_Dinamita.cpp Municion_Granada.cpp Municion_SantaGranada.cpp Objeto.cpp OndaExpansiva.cpp Parseador.cpp PoligonoRegular.cpp ProcesadorDeGeometrias.cpp ProcesadorDeTierra.cpp RecorredorDeImagenes.cpp Rectangulo.cpp Log.cpp Servidor.cpp Servidor_Atendedor.cpp Socket.cpp Tierra.cpp
+         Tierra.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Socket.cpp
+         Servidor_Atendedor.cpp
+     1>c:\users\juan\documents\taller de programación i\server\manejoserializacionservidor.h(3): warning C4005: '_CRT_SECURE_NO_WARNINGS' : redefinición de macro
+                 argumentos de la línea de comandos :  vea la definición anterior de '_CRT_SECURE_NO_WARNINGS'
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Servidor.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Log.cpp
+         Rectangulo.cpp
+         RecorredorDeImagenes.cpp
+         ProcesadorDeTierra.cpp
+         ProcesadorDeGeometrias.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         PoligonoRegular.cpp
+         Parseador.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         OndaExpansiva.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Objeto.cpp
+         Municion_SantaGranada.cpp
+         Municion_Granada.cpp
+         Municion_Dinamita.cpp
+         Municion_Bazooka.cpp
+         Municion_AtaqueAereo.cpp
+         Municion.cpp
+         ManejoSerializacionServidor.cpp
+     1>c:\users\juan\documents\taller de programación i\server\manejoserializacionservidor.h(3): warning C4005: '_CRT_SECURE_NO_WARNINGS' : redefinición de macro
+                 argumentos de la línea de comandos :  vea la definición anterior de '_CRT_SECURE_NO_WARNINGS'
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Generando código...
+         Compilando...
+         ManejoSerializacionCliente.cpp
+         main.cpp
+         Gusano.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Escenario.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         CuerpoGusano.cpp
+         Circulo.cpp
+         CajaMuniciones.cpp
+         Arma_SantaGranada.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Arma_Patada.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Arma_Granada.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Arma_Dinamita.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Arma_Bazooka.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Arma_AtaqueAereo.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Arma.cpp
+     1>c:\users\juan\documents\taller de programación i\server\procesadordegeometrias.h(10): fatal error C1083: No se puede abrir el archivo incluir: 'boost/geometry/algorithms/within.hpp': No such file or directory
+         Generando código...
+     1>Compilación del proyecto terminada "C:\Users\Juan\Documents\Taller de Programación I\Server\TpWorms.vcxproj" (Rebuild destinos) -- ERROR.
+
+ERROR al compilar.
+
+Tiempo transcurrido 00:00:47.38

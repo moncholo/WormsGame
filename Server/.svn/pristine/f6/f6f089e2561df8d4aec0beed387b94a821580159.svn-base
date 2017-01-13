@@ -1,0 +1,73 @@
+#ifndef __CONSTANTES__
+#define __CONSTANTES__
+
+const float ZOOM_MAX = 3.0f;
+const float ZOOM_MIN = 1.0f;
+const float INCREMENTO_ZOOM = 0.05f;
+const float DESPLAZAMIENTO_MAX = 40.0f;
+
+#define ALTO_MAPA 100.0
+#define ANCHO_MAPA 100.0f
+#define ALTO_IMAGEN_GUSANO 15
+#define ANCHO_IMAGEN_GUSANO 10
+
+#define CantidadMaximaGusanosPorJugador 5
+#define CantidadMaximaJugadores 4
+#define CantidadMaximaObjetos 30
+
+#define DENSIDAD_OBJETOS 2.0f
+
+#define FRICCION_OBJETOS 100.0f
+
+#define FUERZA_IMPULSO 80.0f
+
+#define RADIO_ONDA 1.5f
+
+#define FUERZA_DISPARO 9000.0f
+
+
+#define GUSANOS_POR_EQUIPO 5
+
+#define INTERVALO_PARA_MANDAR_JUEGO 3	// hay que regular este param segun lo que tarde en actualizar el juego
+
+#define mascaraQuieroSeguirJugando 11
+#define mascaraAnguloDown 10
+#define mascaraAnguloUp 9
+#define mascaraDisparo 8
+#define mascaraKeyUp 7
+#define mascaraClick 6
+#define mascaraUp 5
+#define mascaraLeft 4
+#define mascaraRight 3
+#define mascaraEsc 2
+#define mascaraPause 1
+#define MAX_CLIENTES 4
+#define MAX_EQUIPOS_EN_ESCENARIO 4
+#define MAX_PIXELES_IMAGEN_TIERRA 3000
+
+#define NUMERO_DE_ARMAS 4
+
+#define PATH_ESCENARIO "escenario.yaml"
+#define PATH_LOG "log.txt"
+#define POSITION_ITERATIONS 7
+#define PUERTO_SERVER 9000
+
+#define RADIO_BASE 10.0f
+#define REBOTE_OBJETOS 0.35f
+
+#define TAM_MAX_YAML 4000
+#define TAM_MAX_IMAGEN 1000000
+#define TAM_MAX_NOMBRE_IMAGEN 40
+#define TAM_DE_LO_Q_RECIBE_CLIENTE 900
+#define TAM_DE_LO_Q_MANDA_CLIENTE 20
+#define TIEMPO_DE_REFRESCO 5
+#define TIME_STEP 1.0f / 25.0f
+#define TAMANO_GUSANO_EN_MUNDO 4.0f
+
+
+#define VELOCITY_ITERATIONS 7
+#define VISCOSIDAD 4.0f
+
+#define TIEMPO_POR_TURNO 30
+
+#endif

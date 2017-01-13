@@ -1,0 +1,171 @@
+- alto_px: 600
+  alto_un: 350
+  ancho_px: 800
+  ancho_un: 500
+  nivel_agua: 45
+  imagen_tierra: tierraMario.png
+  imagen_cielo: cieloMario.png
+  equiposPermitidos: 2
+  objetos:
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 100
+      y: 350
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 120
+      y: 380
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 140
+      y: 400
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 100
+      y: 420
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 120
+      y: 440
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 140
+      y: 460
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 100
+      y: 480
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 120
+      y: 500
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 140
+      y: 520
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 200
+      y: 350
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 220
+      y: 380
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 240
+      y: 400
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 200
+      y: 420
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 220
+      y: 440
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 240
+      y: 460
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 300
+      y: 480
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 320
+      y: 500
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 240
+      y: 520
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no

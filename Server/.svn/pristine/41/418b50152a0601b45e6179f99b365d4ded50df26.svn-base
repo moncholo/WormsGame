@@ -1,0 +1,100 @@
+#include "Arma.h"
+
+int numRandom2(int min, int max){
+	std::random_device rd;
+	return ((rd() % (max-min+1)) + min);
+}
+
+Arma::Arma() {
+	municiones = 10;
+	radioExplosion = 0.0f;
+	fuerzaExplosion = FUERZA_IMPULSO;
+}
+
+
+Arma::~Arma() {
+	
+}
+
+
+void Arma::ejecutar(float posX, float posY, float angulo, int potencia, b2Body*& municionActual){
+	
+}
+bool  Arma::verificarMunicionActual(Escenario* unEscenario){
+	return true;
+}
+
+void Arma::explotar(Escenario* unEscenario){
+			
+			unEscenario->radioDeExplosion = unEscenario->municionActual->GetFixtureList()->GetShape()->m_radius*RADIO_BASE;
+	
+			unEscenario->posXExplosion = unEscenario->municionActual->GetPosition().x;
+			
+			unEscenario->posYExplosion = unEscenario->municionActual->GetPosition().y;
+
+			unEscenario->miTierra->explotarTierraEnPosicion(unEscenario->posXExplosion, unEscenario->posYExplosion,
+													unEscenario->municionActual->GetFixtureList()->GetShape()->m_radius);
+
+			OndaExpansiva* miOndaExpansiva = new OndaExpansiva(unEscenario->gusanos, unEscenario->objetos);
+			miOndaExpansiva->expandirConRadio(unEscenario->posXExplosion, unEscenario->posYExplosion,
+												unEscenario->municionActual->GetFixtureList()->GetShape()->m_radius, this);
+			delete miOndaExpansiva;
+			unEscenario->recortarImagenEnPosicion(unEscenario->posXExplosion, unEscenario->posYExplosion, unEscenario->radioDeExplosion);
+			
+			//EXPLOSIONES
+			unEscenario->sonidoActual = numRandom2(MIN_EXPLOSION, MAX_EXPLOSION);
+
+			unEscenario->municionActual->SetActive(false);
+
+			unEscenario->municionActual->GetWorld()->DestroyBody( unEscenario->municionActual );
+
+			unEscenario->municionActual = NULL;
+}
+
+
+
+void Arma::crearMunision(float posX, float posY, float angulo, int potencia, b2Body*& municionActual){
+	b2BodyDef defCirculo;
+	defCirculo.linearDamping = 0.0f; //De todos modos se inicializa en cero, nos aseguramos de ello
+	defCirculo.position.Set(posX + 12*cos(angulo*M_PI/180.0f), posY+ 12*sin(angulo*M_PI/180.0f));
+	defCirculo.bullet = true;
+	defCirculo.type = b2_dynamicBody;							
+	
+	b2Body* bodyAuxiliar;
+	
+	bodyAuxiliar = mundo->CreateBody(&defCirculo);
+		
+
+	b2CircleShape formaCirculo;
+	formaCirculo.m_p.Set(0.0f, 0.0f); //Queda en cero porque es relativa a la de la definicion
+	formaCirculo.m_radius = this->radioExplosion;
+		
+
+	//Definicion del fixture: Son las caracteristicas del cuerpo: friccion, densidad, etc.
+	b2FixtureDef fixtureCirculo;
+	fixtureCirculo.shape = &formaCirculo;
+	fixtureCirculo.density = DENSIDAD_OBJETOS;
+	fixtureCirculo.friction = FRICCION_OBJETOS;
+	fixtureCirculo.restitution = REBOTE_OBJETOS;
+
+	(bodyAuxiliar)->CreateFixture(&fixtureCirculo);
+	(bodyAuxiliar)->SetActive(true);
+
+//desde la posicion del gusano aplica una fuerza
+
+	b2Vec2	impulso;
+	impulso.Set(potencia*cos(angulo*M_PI/180.0f), potencia*sin(angulo*M_PI/180.0f));
+
+	
+//misil.ApplyImpulse(impulso,misil.GetBody().GetWorldCenter());
+	//(municionActual)->ApplyForceToCenter(impulso,true);
+
+	municionActual = bodyAuxiliar;
+
+	municionActual->ApplyLinearImpulse(impulso,municionActual->GetWorldCenter(),true);
+	//municionActual->ApplyLinearImpulse(impulso,municionActual->GetWorldCenter(),true);
+	
+	municionActual->SetUserData(this);
+	
+
+}

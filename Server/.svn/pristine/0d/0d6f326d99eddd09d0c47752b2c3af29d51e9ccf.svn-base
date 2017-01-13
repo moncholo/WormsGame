@@ -1,0 +1,52 @@
+- alto_px: 500
+  alto_un: 80
+  ancho_px: 600
+  ancho_un: 100
+  nivel_agua: 20
+  imagen_tierra: private/imagen_tierra_default.png
+  imagen_cielo: private/imagen_cielo_default.jpg
+  objetos:
+    - tipo: circulo
+      escala: 3
+      x: 15
+      y: 50
+      color: "#c005d5"
+      rot: 90
+      masa: 23
+      estatico: no
+    - tipo: rectangulo
+      ancho: 5
+      alto: 5
+      x: 50
+      y: 80
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: rectangulo
+      ancho: 5
+      alto: 5
+      x: 30
+      y: 80
+      color: "#0075d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 8
+      escala: 3
+      x: 30
+      y: 60
+      color: "#c67515"
+      rot: 27
+      masa: 80
+      estatico: no
+    - tipo: rectangulo
+      ancho: 5
+      alto: 5
+      x: 60
+      y: 70
+      color: "#c675d5"
+      rot: 27
+      masa: 28
+      estatico: no

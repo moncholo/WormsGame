@@ -1,0 +1,92 @@
+#include "Circulo.h"
+
+Circulo::Circulo(){
+};
+
+Circulo::Circulo(float x, float y, float radio){
+	this->x = x;
+	this->y = y;
+	this->radio = radio;
+}
+
+void Circulo::actualizar(){
+
+	this->radio = escala;
+}
+
+//Override
+void Circulo::dibujarConColor(SDL_Renderer* unRenderer, float altoVentana, float anchoVentana, float altoMapa, float anchoMapa, 
+							  float factorDeZoom, float offsetX, float offsetY){
+		
+	float escalaX = anchoVentana / anchoMapa ;
+	float escalaY = altoVentana / altoMapa;
+
+	filledEllipseRGBA(unRenderer,
+		(Sint16)(this->cuerpoCirculo->GetPosition().x * escalaX * factorDeZoom - offsetX),
+		(Sint16)((altoVentana - this->cuerpoCirculo->GetPosition().y * escalaY) * factorDeZoom - offsetY),
+		(Sint16)(this->radio * escalaX*factorDeZoom),
+		(Sint16)(this->radio * escalaY*factorDeZoom),
+		(Uint8)this->r,(Uint8)this->g,(Uint8)this->b,255);
+
+	if(this->elegido == true ){
+		ellipseRGBA(unRenderer,
+			(Sint16)(this->cuerpoCirculo->GetPosition().x*escalaX * factorDeZoom - offsetX),
+			(Sint16)((altoVentana -  this->cuerpoCirculo->GetPosition().y * escalaY) * factorDeZoom - offsetY), 
+			(Sint16)(this->radio * escalaX*factorDeZoom),
+			(Sint16)(this->radio * escalaY*factorDeZoom),
+			(Uint8)255, (Uint8)0, (Uint8)0, (Uint8)255);
+	}
+}
+
+//Override
+void Circulo::imprimirMensaje(){
+	std::cout << "Es un circulo " << std::endl;
+}
+
+//Override
+void Circulo::incluirEnMundo(b2World* unMundo){
+	
+	
+	//std::cout<<"La escala del Circulo es: "<<this->escala << std::endl;
+	//Definicion del cuerpo del circulo
+		b2BodyDef defCirculo;
+		defCirculo.linearDamping = 0.0f; //De todos modos se inicializa en cero, nos aseguramos de ello
+		defCirculo.position.Set(this->x, this->y);
+		defCirculo.bullet = true;
+		if (!strcmp(this->estatico.c_str(), "si")) { //Da cero si son iguales, por eso pongo el negador
+			defCirculo.type = b2_staticBody;
+		}else {
+			defCirculo.type = b2_dynamicBody;			
+		}
+
+		
+		this->cuerpoCirculo = unMundo->CreateBody(&defCirculo);
+		
+
+		b2CircleShape formaCirculo;
+		formaCirculo.m_p.Set(0.0f, 0.0f); //Queda en cero porque es relativa a la de la definicion
+		formaCirculo.m_radius = this->radio;
+		
+
+		//Definicion del fixture: Son las caracteristicas del cuerpo: friccion, densidad, etc.
+		b2FixtureDef fixtureCirculo;
+		fixtureCirculo.shape = &formaCirculo;
+		fixtureCirculo.density = DENSIDAD_OBJETOS;
+		fixtureCirculo.friction = FRICCION_OBJETOS;
+		fixtureCirculo.restitution = REBOTE_OBJETOS;
+		this->cuerpoCirculo->CreateFixture(&fixtureCirculo);
+		this->cuerpoCirculo->SetUserData(this);
+}
+
+b2Body* Circulo::getCuerpo(){
+	return this->cuerpoCirculo;
+}
+
+Circulo::~Circulo(){
+	//por ahora nada
+}
+
+bool Circulo::esGusano(){
+	return false;
+}
+
