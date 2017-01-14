@@ -1,0 +1,34 @@
+#include "Objeto.h"
+
+#ifndef RECTANGULO
+#define RECTANGULO
+
+class Rectangulo : public Objeto {
+	private:
+		b2Body* cuerpoDelRectangulo;
+		
+
+	public:
+		float alto;
+		float ancho;
+		Rectangulo();
+		
+		Rectangulo(int x, int y, int ancho, int alto); //, float escalaX, float escalaY);
+
+		void incluirEnMundo(b2World* unMundo);
+
+		void dibujarConColor(SDL_Renderer* unRenderer, float altoVentana, float anchoVentana, float altoMapa, float anchoMapa,
+					float factorDeZoom, float offsetX, float offsetY);
+
+		void imprimirMensaje();
+
+		b2Body* getCuerpo();
+
+		bool esGusano();
+
+		~Rectangulo();
+
+};
+
+
+#endif

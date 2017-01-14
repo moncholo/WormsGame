@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Circulo.cpp" />
+    <ClCompile Include="Cliente.cpp" />
+    <ClCompile Include="CuerpoGusano.cpp" />
+    <ClCompile Include="Escenario.cpp" />
+    <ClCompile Include="Explosion.cpp" />
+    <ClCompile Include="Gusano.cpp" />
+    <ClCompile Include="ManejoSerializacionCliente.cpp" />
+    <ClCompile Include="ManejoSerializacionServidor.cpp" />
+    <ClCompile Include="MenuDeArmas.cpp" />
+    <ClCompile Include="Objeto.cpp" />
+    <ClCompile Include="Parseador.cpp" />
+    <ClCompile Include="Poligono.cpp" />
+    <ClCompile Include="PoligonoRegular.cpp" />
+    <ClCompile Include="ProcesadorDeTierra.cpp" />
+    <ClCompile Include="RecorredorDeImagenes.cpp" />
+    <ClCompile Include="Rectangulo.cpp" />
+    <ClCompile Include="SDL2_gfx-1.0.0\SDL2_framerate.c" />
+    <ClCompile Include="SDL2_gfx-1.0.0\SDL2_gfxPrimitives.c" />
+    <ClCompile Include="SDL2_gfx-1.0.0\SDL2_imageFilter.c" />
+    <ClCompile Include="SDL2_gfx-1.0.0\SDL2_rotozoom.c" />
+    <ClCompile Include="Log.cpp" />
+    <ClCompile Include="SocketCliente.cpp" />
+    <ClCompile Include="Sonido.cpp" />
+    <ClCompile Include="Tierra.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Circulo.h" />
+    <ClInclude Include="Cliente.h" />
+    <ClInclude Include="Constantes.h" />
+    <ClInclude Include="CuerpoGusano.h" />
+    <ClInclude Include="Escenario.h" />
+    <ClInclude Include="Explosion.h" />
+    <ClInclude Include="Gusano.h" />
+    <ClInclude Include="Log.h" />
+    <ClInclude Include="ManejoSerializacionCliente.h" />
+    <ClInclude Include="ManejoSerializacionServidor.h" />
+    <ClInclude Include="MenuDeArmas.h" />
+    <ClInclude Include="Objeto.h" />
+    <ClInclude Include="Parseador.h" />
+    <ClInclude Include="Poligono.h" />
+    <ClInclude Include="PoligonoRegular.h" />
+    <ClInclude Include="ProcesadorDeTierra.h" />
+    <ClInclude Include="RecorredorDeImagenes.h" />
+    <ClInclude Include="Rectangulo.h" />
+    <ClInclude Include="SDL2_gfx-1.0.0\SDL2_framerate.h" />
+    <ClInclude Include="SDL2_gfx-1.0.0\SDL2_gfxPrimitives.h" />
+    <ClInclude Include="SDL2_gfx-1.0.0\SDL2_gfxPrimitives_font.h" />
+    <ClInclude Include="SDL2_gfx-1.0.0\SDL2_imageFilter.h" />
+    <ClInclude Include="SDL2_gfx-1.0.0\SDL2_rotozoom.h" />
+    <ClInclude Include="SocketCliente.h" />
+    <ClInclude Include="Sonido.h" />
+    <ClInclude Include="Tierra.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="imagenlineademas.bmp" />
+    <Image Include="imagenlineademas2.bmp" />
+    <Image Include="imagenlineademas3.bmp" />
+    <Image Include="primeraimagen.png" />
+    <Image Include="primeraimagen20x15.bmp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{EA53E2A4-BA13-4818-8E34-D0BA36BA3046}</ProjectGuid>
+    <RootNamespace>TpWorms</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\Users\Juan\Documents\Taller de Programación I\Cliente\SDL2_mixer-2.0.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Juan\Documents\Taller de Programación I\Cliente\SDL2_mixer-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>./include/;./</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>./lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Box2D.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;yaml-cpp.lib;C:\MinGW\lib\libwsock32.a;C:\MinGW\lib\libws2_32.a;C:\MinGW\lib\gcc\mingw32\4.7.0\libgcc.a;SDL2_ttf.lib;SDL2_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
