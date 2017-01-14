@@ -1,0 +1,110 @@
+- alto_px: 600
+  alto_un: 250
+  ancho_px: 800
+  ancho_un: 300
+  nivel_agua: 90
+  imagen_tierra: ImagenTetas255bis.png
+  imagen_cielo: cielo.png
+  objetos:
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 2
+      x: 50
+      y: 80
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 4
+      escala: 3
+      x: 30
+      y: 80
+      color: "#0075d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 8
+      escala: 10
+      x: 100
+      y: 600
+      color: "#c67515"
+      rot: 27
+      masa: 80
+      estatico: no
+    - tipo: polireg
+      escala: 10
+      numeroDeLados: 5
+      ancho: 5
+      alto: 5
+      x: 150
+      y: 900
+      color: "#ff0000"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      escala: 10
+      numeroDeLados: 4
+      ancho: 5
+      alto: 5
+      x: 250
+      y: 500
+      color: "#ff00d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      escala: 2
+      numeroDeLados: 4
+      x: 50
+      y: 80
+      color: "#c690d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      escala: 2
+      numeroDeLados: 4
+      x: 30
+      y: 280
+      color: "#0075d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: polireg
+      numeroDeLados: 8
+      escala: 3
+      x: 30
+      y: 260
+      color: "#c67515"
+      rot: 27
+      masa: 80
+      estatico: no
+    - tipo: polireg
+      escala: 2
+      numeroDeLados: 4
+      x: 60
+      y: 270
+      color: "#c675d5"
+      rot: 27
+      masa: 28
+      estatico: no
+    - tipo: circulo
+      escala: 3
+      x: 15
+      y: 250
+      color: "#c005d5"
+      rot: 90
+      masa: 23
+      estatico: no
+    - tipo: polireg
+      escala: 5
+      numeroDeLados: 3
+      masa: 40
+      rot: 20
+      estatico: no
+      color: "#ff00ff"
+      x: 100
+      y: 1000
